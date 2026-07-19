@@ -1,22 +1,33 @@
-use chrono::{DateTime, Utc};
-use cron::Schedule;
+use cron::{Schedule, TimeUnitSpec};
+use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
 
-/// Merge multiple cron expressions into one deduped stream of fire times.
+/// Merge multiple cron expressions into one deduped set of compiled schedules.
 #[derive(Debug, Clone)]
-pub struct CronUnion {
-    schedules: Vec<ScheduleState>,
+pub struct CronUnion(Vec<CompiledCron>);
+
+/// A compiled cron expression plus its original display form.
+#[derive(Debug, Clone)]
+pub struct CompiledCron {
+    schedule: Schedule,
+    display: String,
 }
 
-#[derive(Debug, Clone)]
-struct ScheduleState {
-    schedule: Schedule,
-    next: Option<DateTime<Utc>>,
+impl CompiledCron {
+    pub fn schedule(&self) -> &Schedule {
+        &self.schedule
+    }
+}
+
+impl Display for CompiledCron {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.display)
+    }
 }
 
 impl CronUnion {
     /// Build a union from cron expressions.
-    pub fn new<I, S>(expressions: I, start: DateTime<Utc>) -> Result<Self, cron::error::Error>
+    pub fn new<I, S>(expressions: I) -> Result<Self, cron::error::Error>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -24,27 +35,42 @@ impl CronUnion {
         let mut schedules = Vec::new();
 
         for expression in expressions {
-            let schedule = Schedule::from_str(&normalize_expression(expression.as_ref()))?;
-            let next = schedule.after(&start).next();
-            schedules.push(ScheduleState { schedule, next });
+            let display = expression
+                .as_ref()
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            let schedule = Schedule::from_str(&normalize_expression(&display))?;
+            let candidate = CompiledCron { schedule, display };
+
+            if schedules.iter().any(|existing: &CompiledCron| {
+                schedule_is_subset(&candidate.schedule, &existing.schedule)
+            }) {
+                continue;
+            }
+
+            schedules.retain(|existing: &CompiledCron| {
+                !schedule_is_subset(&existing.schedule, &candidate.schedule)
+            });
+            schedules.push(candidate);
         }
 
-        Ok(Self { schedules })
+        Ok(Self(schedules))
     }
 
-    /// Return the next deduped fire times.
-    pub fn iter(self) -> CronUnionIter {
-        CronUnionIter { inner: self }
+    /// Return the compiled cron expressions.
+    pub fn iter(&self) -> impl Iterator<Item = &CompiledCron> {
+        self.0.iter()
     }
 }
 
 /// Convenience constructor.
-pub fn union<I, S>(expressions: I, start: DateTime<Utc>) -> Result<CronUnion, cron::error::Error>
+pub fn union<I, S>(expressions: I) -> Result<CronUnion, cron::error::Error>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
 {
-    CronUnion::new(expressions, start)
+    CronUnion::new(expressions)
 }
 
 fn normalize_expression(expression: &str) -> String {
@@ -54,29 +80,22 @@ fn normalize_expression(expression: &str) -> String {
     }
 }
 
-pub struct CronUnionIter {
-    inner: CronUnion,
+fn schedule_is_subset(a: &Schedule, b: &Schedule) -> bool {
+    unit_is_subset(a.years(), b.years())
+        && unit_is_subset(a.months(), b.months())
+        && unit_is_subset(a.days_of_month(), b.days_of_month())
+        && unit_is_subset(a.days_of_week(), b.days_of_week())
+        && unit_is_subset(a.hours(), b.hours())
+        && unit_is_subset(a.minutes(), b.minutes())
+        && unit_is_subset(a.seconds(), b.seconds())
 }
 
-impl Iterator for CronUnionIter {
-    type Item = DateTime<Utc>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let next = self
-            .inner
-            .schedules
-            .iter()
-            .filter_map(|state| state.next)
-            .min()?;
-
-        for state in &mut self.inner.schedules {
-            if state.next == Some(next) {
-                state.next = state.schedule.after(&next).next();
-            }
-        }
-
-        Some(next)
-    }
+fn unit_is_subset<A, B>(a: &A, b: &B) -> bool
+where
+    A: TimeUnitSpec,
+    B: TimeUnitSpec,
+{
+    a.iter().all(|ordinal| b.includes(ordinal))
 }
 
 #[cfg(test)]

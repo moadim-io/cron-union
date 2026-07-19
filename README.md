@@ -1,6 +1,6 @@
 # cron-union
 
-Merge multiple cron expressions into one deduped schedule.
+Merge multiple cron expressions into one deduped set of compiled schedules.
 
 ## Math
 
@@ -17,25 +17,16 @@ If two expressions fire at the same timestamp, that timestamp appears once.
 ### Merge two schedules
 
 ```text
-A = */5 * * * *
-B = 0 * * * *
+A = 0 * * * *
+B = */30 * * * *
 
-Result = union(A, B)
+Result = union(A, B) = [*/30 * * * *]
 ```
 
-### Dedupe overlaps
+### Dedupe redundant crons
 
 ```text
-A = {1, 5, 10}
-B = {5, 7}
-A ∪ B = {1, 5, 7, 10}
-```
-
-### Same timestamp, one run
-
-```text
-A fires at 10:00
-B fires at 10:00
-
-Output: 10:00 once
+A = 0 * * * *
+B = */30 * * * *
+A ∪ B = [*/30 * * * *]
 ```
