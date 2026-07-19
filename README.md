@@ -30,3 +30,11 @@ A = 0 * * * *
 B = */30 * * * *
 A ∪ B = [*/30 * * * *]
 ```
+
+## Validation
+
+Enable the pre-push hook once:
+
+```text
+git config core.hooksPath .githooks
+```
