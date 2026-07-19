@@ -2,6 +2,12 @@
 name = "cron-union"
 version = "1.0.0"
 edition = "2024"
+repository = "https://github.com/moadim-io/cron-union"
+homepage = "https://github.com/moadim-io/cron-union"
+readme = "README.md"
+license = "MIT"
+keywords = ["cron", "schedule", "union"]
+categories = ["algorithms"]
 
 [dependencies]
 cron = "0.17.0"
