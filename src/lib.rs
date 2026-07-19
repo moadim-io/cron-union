@@ -80,4 +80,4 @@ impl Iterator for CronUnionIter {
 }
 
 #[cfg(test)]
-mod tests;
+mod lib_tests;
