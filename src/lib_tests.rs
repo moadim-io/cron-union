@@ -10,6 +10,13 @@ fn drops_redundant_crons() {
 }
 
 #[test]
+fn allows_an_empty_union() {
+    let union = CronUnion::new(std::iter::empty::<&str>()).unwrap();
+
+    assert!(union.iter().next().is_none());
+}
+
+#[test]
 fn removes_supersets_when_a_more_specific_cron_arrives_later() {
     let union = CronUnion::new(["*/30 * * * *", "0 * * * *"]).unwrap();
 
@@ -52,6 +59,21 @@ fn keeps_distinct_crons_when_minutes_differ() {
     let crons: Vec<_> = union.iter().map(ToString::to_string).collect();
 
     assert_eq!(crons, vec!["0 0 9 * * *", "0 1 9 * * *"]);
+}
+
+#[test]
+fn keeps_distinct_crons_across_time_units() {
+    for (left, right) in [
+        ("0 0 9 1 * *", "0 0 9 2 * *"),
+        ("0 0 9 * 1 *", "0 0 9 * 2 *"),
+        ("0 0 9 * * 1", "0 0 9 * * 2"),
+        ("0 0 9 * * * 2024", "0 0 9 * * * 2025"),
+    ] {
+        let union = CronUnion::new([left, right]).unwrap();
+        let crons: Vec<_> = union.iter().map(ToString::to_string).collect();
+
+        assert_eq!(crons, vec![left, right]);
+    }
 }
 
 #[test]
