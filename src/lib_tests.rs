@@ -77,6 +77,31 @@ fn keeps_distinct_crons_across_time_units() {
 }
 
 #[test]
+fn supports_at_cron_aliases() {
+    let daily = CronUnion::new(["@daily"]).unwrap();
+    let weekly = CronUnion::new(["@weekly"]).unwrap();
+    let monthly = CronUnion::new(["@monthly"]).unwrap();
+    let yearly = CronUnion::new(["@yearly"]).unwrap();
+
+    assert_eq!(
+        daily.iter().next().unwrap().schedule().to_string(),
+        "0 0 0 * * *"
+    );
+    assert_eq!(
+        weekly.iter().next().unwrap().schedule().to_string(),
+        "0 0 0 * * 1"
+    );
+    assert_eq!(
+        monthly.iter().next().unwrap().schedule().to_string(),
+        "0 0 0 1 * *"
+    );
+    assert_eq!(
+        yearly.iter().next().unwrap().schedule().to_string(),
+        "0 0 0 1 1 *"
+    );
+}
+
+#[test]
 fn returns_an_error_for_invalid_expressions() {
     assert!(union(["not a cron"]).is_err());
 }
