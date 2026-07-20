@@ -74,9 +74,16 @@ where
 }
 
 fn normalize_expression(expression: &str) -> String {
-    match expression.split_whitespace().count() {
-        5 => format!("0 {expression}"),
-        _ => expression.to_string(),
+    match expression {
+        "@yearly" | "@annually" => "0 0 0 1 1 *".to_string(),
+        "@monthly" => "0 0 0 1 * *".to_string(),
+        "@weekly" => "0 0 0 * * 1".to_string(),
+        "@daily" | "@midnight" => "0 0 0 * * *".to_string(),
+        "@hourly" => "0 0 * * * *".to_string(),
+        _ => match expression.split_whitespace().count() {
+            5 => format!("0 {expression}"),
+            _ => expression.to_string(),
+        },
     }
 }
 
