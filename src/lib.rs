@@ -80,10 +80,52 @@ fn normalize_expression(expression: &str) -> String {
         "@weekly" => "0 0 0 * * 1".to_string(),
         "@daily" | "@midnight" => "0 0 0 * * *".to_string(),
         "@hourly" => "0 0 * * * *".to_string(),
-        _ => match expression.split_whitespace().count() {
-            5 => format!("0 {expression}"),
-            _ => expression.to_string(),
-        },
+        _ => {
+            let fields: Vec<&str> = expression.split_whitespace().collect();
+            match fields.as_slice() {
+                [minute, hour, day_of_month, month, day_of_week] => format!(
+                    "0 {minute} {hour} {day_of_month} {month} {}",
+                    normalize_posix_day_of_week(day_of_week)
+                ),
+                _ => expression.to_string(),
+            }
+        }
+    }
+}
+
+fn normalize_posix_day_of_week(field: &str) -> String {
+    field
+        .split(',')
+        .map(normalize_posix_day_of_week_part)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn normalize_posix_day_of_week_part(part: &str) -> String {
+    let (base, step) = part.split_once('/').unwrap_or((part, ""));
+    let normalized_base = base
+        .split('-')
+        .map(|value| {
+            value
+                .parse::<u32>()
+                .map(normalize_posix_day_of_week_ordinal)
+                .map(|ordinal| ordinal.to_string())
+                .unwrap_or_else(|_| value.to_string())
+        })
+        .collect::<Vec<_>>()
+        .join("-");
+    if step.is_empty() {
+        normalized_base
+    } else {
+        format!("{normalized_base}/{step}")
+    }
+}
+
+const fn normalize_posix_day_of_week_ordinal(ordinal: u32) -> u32 {
+    match ordinal {
+        0 | 7 => 1,
+        1..=6 => ordinal + 1,
+        _ => ordinal,
     }
 }
 
