@@ -44,6 +44,23 @@ fn preserves_six_field_expressions_and_exposes_the_schedule() {
 }
 
 #[test]
+fn accepts_posix_zero_based_days_of_week_in_five_field_crons() {
+    let union = CronUnion::new(["0 18 * * 0-4"]).unwrap();
+    let cron = union.iter().next().unwrap();
+
+    assert_eq!(cron.to_string(), "0 18 * * 0-4");
+    assert_eq!(cron.schedule().to_string(), "0 0 18 * * 1-5");
+}
+
+#[test]
+fn preserves_posix_weekday_semantics_for_subset_checks() {
+    let union = CronUnion::new(["0 18 * * 1-5", "0 18 * * 1"]).unwrap();
+    let crons: Vec<_> = union.iter().map(ToString::to_string).collect();
+
+    assert_eq!(crons, vec!["0 18 * * 1-5"]);
+}
+
+#[test]
 fn keeps_distinct_crons_when_seconds_differ() {
     let union = CronUnion::new(["0 */5 * * * *", "30 */5 * * * *"]).unwrap();
 

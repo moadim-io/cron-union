@@ -1,6 +1,6 @@
 [package]
 name = "cron-union"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2024"
 description = "Merge multiple cron expressions into one deduped schedule"
 repository = "https://github.com/moadim-io/cron-union"
