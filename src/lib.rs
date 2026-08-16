@@ -27,6 +27,10 @@ impl Display for CompiledCron {
 
 impl CronUnion {
     /// Build a union from cron expressions.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any expression fails to parse as a valid cron schedule.
     pub fn new<I, S>(expressions: I) -> Result<Self, cron::error::Error>
     where
         I: IntoIterator<Item = S>,
@@ -65,6 +69,10 @@ impl CronUnion {
 }
 
 /// Convenience constructor.
+///
+/// # Errors
+///
+/// Returns an error if any expression fails to parse as a valid cron schedule.
 pub fn union<I, S>(expressions: I) -> Result<CronUnion, cron::error::Error>
 where
     I: IntoIterator<Item = S>,

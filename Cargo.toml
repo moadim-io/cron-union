@@ -10,6 +10,9 @@ license = "MIT"
 keywords = ["cron", "schedule", "union"]
 categories = ["algorithms"]
 
+[lints.clippy]
+missing_errors_doc = "warn"
+
 [dependencies]
 cron = "0.17.0"
 
